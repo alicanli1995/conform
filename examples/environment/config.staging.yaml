@@ -1,0 +1,13 @@
+app:
+  name: "Staging App"
+  environment: "staging"
+
+database:
+  host: "db.staging.com"
+  port: 5432
+  url: "postgres://staging.db.com/stagingdb"
+
+server:
+  host: "0.0.0.0"
+  port: 8080
+

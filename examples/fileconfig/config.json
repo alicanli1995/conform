@@ -1,0 +1,15 @@
+{
+  "server": {
+    "host": "api.example.com",
+    "port": 3000
+  },
+  "database": {
+    "url": "postgres://user:pass@localhost/mydb",
+    "max_conns": 25
+  },
+  "features": {
+    "cache_enabled": true,
+    "log_level": "debug"
+  }
+}
+
