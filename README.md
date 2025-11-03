@@ -5,6 +5,8 @@
 ![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8?style=for-the-badge&logo=go)
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
 ![GitHub](https://img.shields.io/github/stars/alicanli1995/conform?style=for-the-badge)
+![CI/CD](https://github.com/alicanli1995/conform/actions/workflows/test.yml/badge.svg)
+[![Go Reference](https://pkg.go.dev/badge/github.com/alicanli1995/conform.svg)](https://pkg.go.dev/github.com/alicanli1995/conform)
 
 **The Pydantic for Go** - Type-safe configuration loading, validation, and management in one elegant package.
 
@@ -509,6 +511,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 **Made with ❤️ for the Go community**
 
-[⭐ Star us on GitHub](https://github.com/alicanli1995/conform) • [📖 Documentation](#-documentation) • [💬 Issues](https://github.com/alicanli1995/conform/issues)
+[⭐ Star us on GitHub](https://github.com/alicanli1995/conform) • [📦 pkg.go.dev](https://pkg.go.dev/github.com/alicanli1995/conform) • [📖 Documentation](#-documentation) • [💬 Issues](https://github.com/alicanli1995/conform/issues)
 
 </div>
