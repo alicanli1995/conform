@@ -232,7 +232,11 @@ func (c *Converter) convertStruct(value string, targetType reflect.Type, format 
 		if format != "" {
 			layout = format
 		}
-		return time.Parse(layout, value)
+		t, err := time.Parse(layout, value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse time %q with layout %q: %w", value, layout, err)
+		}
+		return t, nil
 	}
 
 	return nil, fmt.Errorf("cannot convert string to struct %s", targetType)

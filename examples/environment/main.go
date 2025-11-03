@@ -36,7 +36,7 @@ func getExampleDir() string {
 func main() {
 	exampleDir := getExampleDir()
 
-	fmt.Println("=== Environment-Specific Configuration Demo ===\n")
+	fmt.Println("=== Environment-Specific Configuration Demo ===")
 
 	// Example 1: Development environment
 	fmt.Println("📦 Loading DEVELOPMENT config...")

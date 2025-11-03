@@ -267,8 +267,8 @@ func parseStructFields(t reflect.Type, index []int, prefix string, info *StructI
 		}
 
 		// Handle nested structs with file keys (recursively parse without prefix)
-		if field.Type.Kind() == reflect.Struct && tag.FileKey == "" {
-			// No file key means it's a nested struct - parse recursively
+		if field.Type.Kind() == reflect.Struct && tag.FileKey == "" &&
+			!(field.Type.PkgPath() == "time" && field.Type.Name() == "Time") {
 			parseStructFields(field.Type, fieldIndex, prefix, info)
 			continue
 		}
