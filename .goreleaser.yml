@@ -1,36 +1,24 @@
+# GoReleaser Configuration for Conform
 project_name: conform
-
-before:
-  hooks:
-    - go mod download
-
 builds:
-  - id: conform-validate
-    main: ./cmd/conform-validate
-    binary: conform-validate
-    goos:
-      - linux
-      - darwin
-      - windows
-    goarch:
-      - amd64
-      - arm64
-    skip:
-      - goos: windows
-        goarch: arm64
+  - skip: true
 
-archives:
-  - id: default
-    builds:
-      - conform-validate
-    format_overrides:
-      - goos: windows
-        format: zip
-    files:
-      - LICENSE
-      - README.md
+release:
+  github:
+    owner: alicanli1995
+    name: conform
+  mode: replace
+  footer: |
+    ## Installation
+
+    ```bash
+    go get github.com/alicanli1995/conform@{{ .Tag }}
+    ```
+
+    Full documentation: https://github.com/alicanli1995/conform
 
 changelog:
+  use: github
   sort: asc
   filters:
     exclude:
@@ -39,10 +27,4 @@ changelog:
       - '^chore:'
       - Merge pull request
       - Merge branch
-
-release:
-  github:
-    owner: alicanli1995
-    name: conform
-  prerelease: auto
 
