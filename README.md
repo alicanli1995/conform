@@ -5,7 +5,7 @@
 ![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8?style=for-the-badge&logo=go)
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
 ![GitHub](https://img.shields.io/github/stars/alicanli1995/conform?style=for-the-badge)
-![CI/CD](https://img.shields.io/github/actions/workflow/status/alicanli1995/conform/test.yml?style=for-the-badge&label=CI/CD)
+![CI/CD](https://img.shields.io/github/actions/workflow/status/alicanli1995/conform/ci.yml?style=for-the-badge&label=CI/CD)
 [![Go Reference](https://img.shields.io/badge/go-reference-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://pkg.go.dev/github.com/alicanli1995/conform)
 
 ### The Pydantic for Go
