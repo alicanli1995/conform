@@ -66,6 +66,18 @@ jobs:
             echo "✅ Release already exists with ID: $RELEASE_ID"
             echo "🔄 Updating release..."
             
+            # Prepare release body using heredoc
+            BODY=$(cat <<EOF
+## Installation
+
+\`\`\`bash
+go get github.com/alicanli1995/conform@$TAG
+\`\`\`
+
+Full documentation: https://github.com/alicanli1995/conform
+EOF
+)
+            
             # Update existing release
             gh api repos/alicanli1995/conform/releases/$RELEASE_ID \
               -X PATCH \
@@ -73,13 +85,7 @@ jobs:
               -f draft=false \
               -f tag_name=$TAG \
               -f name="Release $TAG" \
-              -f body="## Installation
-
-\`\`\`bash
-go get github.com/alicanli1995/conform@$TAG
-\`\`\`
-
-Full documentation: https://github.com/alicanli1995/conform"
+              -f body="$BODY"
             
             echo "✅ Release $TAG updated"
           else
@@ -90,7 +96,8 @@ Full documentation: https://github.com/alicanli1995/conform"
             
             if [[ -n "$PREVIOUS_TAG" ]]; then
               CHANGELOG=$(git log ${PREVIOUS_TAG}..${TAG} --pretty=format:"- %s (%h)" --reverse | head -20)
-              BODY="## Changes since $PREVIOUS_TAG
+              BODY=$(cat <<EOF
+## Changes since $PREVIOUS_TAG
 
 $CHANGELOG
 
@@ -100,15 +107,20 @@ $CHANGELOG
 go get github.com/alicanli1995/conform@$TAG
 \`\`\`
 
-Full documentation: https://github.com/alicanli1995/conform"
+Full documentation: https://github.com/alicanli1995/conform
+EOF
+)
             else
-              BODY="## Installation
+              BODY=$(cat <<EOF
+## Installation
 
 \`\`\`bash
 go get github.com/alicanli1995/conform@$TAG
 \`\`\`
 
-Full documentation: https://github.com/alicanli1995/conform"
+Full documentation: https://github.com/alicanli1995/conform
+EOF
+)
             fi
             
             # Create new release
