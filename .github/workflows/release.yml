@@ -24,6 +24,7 @@ jobs:
           go-version: '1.21'
 
       - name: Run GoReleaser
+        id: goreleaser
         uses: goreleaser/goreleaser-action@v5
         with:
           distribution: goreleaser
@@ -31,54 +32,101 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
 
       - name: Install GitHub CLI
-        if: success()
+        if: always()
         run: |
-          type -p curl >/dev/null || (apt update && apt install curl -y)
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
-          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
-          && apt update \
-          && apt install gh -y
+          if ! command -v gh &> /dev/null; then
+            echo "📥 Installing GitHub CLI..."
+            type -p curl >/dev/null || (apt update && apt install curl -y)
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+            && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+            && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+            && apt update \
+            && apt install gh -y
+          else
+            echo "✅ GitHub CLI already installed"
+          fi
 
-      - name: Set latest release
-        if: success()
+      - name: Create or update release
+        if: always()
         run: |
           # Get the tag that was just pushed
           TAG=$(git describe --tags --abbrev=0)
-          echo "🔖 Setting latest release to: $TAG"
+          echo "🔖 Processing release for tag: $TAG"
           
           # Wait a bit for GitHub API to be ready
           sleep 2
           
-          # Get the release ID for this tag
+          # Check if release already exists
           RELEASE_ID=$(gh api repos/alicanli1995/conform/releases/tags/$TAG --jq '.id' 2>/dev/null || echo "")
           
           if [[ -n "$RELEASE_ID" && "$RELEASE_ID" != "null" ]]; then
-            echo "✅ Found release ID: $RELEASE_ID"
+            echo "✅ Release already exists with ID: $RELEASE_ID"
+            echo "🔄 Updating release..."
             
-            # Set this release as the latest (by making it the most recent non-prerelease)
-            # First, ensure it's not a prerelease
+            # Update existing release
             gh api repos/alicanli1995/conform/releases/$RELEASE_ID \
               -X PATCH \
               -f prerelease=false \
+              -f draft=false \
+              -f tag_name=$TAG \
+              -f name="Release $TAG" \
+              -f body="## Installation
+
+\`\`\`bash
+go get github.com/alicanli1995/conform@$TAG
+\`\`\`
+
+Full documentation: https://github.com/alicanli1995/conform"
+            
+            echo "✅ Release $TAG updated"
+          else
+            echo "📦 Creating new release for tag: $TAG"
+            
+            # Get changelog from commits since last tag
+            PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+            
+            if [[ -n "$PREVIOUS_TAG" ]]; then
+              CHANGELOG=$(git log ${PREVIOUS_TAG}..${TAG} --pretty=format:"- %s (%h)" --reverse | head -20)
+              BODY="## Changes since $PREVIOUS_TAG
+
+$CHANGELOG
+
+## Installation
+
+\`\`\`bash
+go get github.com/alicanli1995/conform@$TAG
+\`\`\`
+
+Full documentation: https://github.com/alicanli1995/conform"
+            else
+              BODY="## Installation
+
+\`\`\`bash
+go get github.com/alicanli1995/conform@$TAG
+\`\`\`
+
+Full documentation: https://github.com/alicanli1995/conform"
+            fi
+            
+            # Create new release
+            gh api repos/alicanli1995/conform/releases \
+              -X POST \
+              -f tag_name=$TAG \
+              -f name="Release $TAG" \
+              -f body="$BODY" \
+              -f prerelease=false \
               -f draft=false
             
-            echo "✅ Release $TAG set as latest (non-prerelease)"
-          else
-            echo "⚠️ Release not found for tag $TAG, waiting..."
-            sleep 5
-            # Try again
+            echo "✅ Release $TAG created successfully"
+            
+            # Wait a bit and verify
+            sleep 2
             RELEASE_ID=$(gh api repos/alicanli1995/conform/releases/tags/$TAG --jq '.id' 2>/dev/null || echo "")
             if [[ -n "$RELEASE_ID" && "$RELEASE_ID" != "null" ]]; then
-              gh api repos/alicanli1995/conform/releases/$RELEASE_ID \
-                -X PATCH \
-                -f prerelease=false \
-                -f draft=false
-              echo "✅ Release $TAG set as latest"
-            else
-              echo "⚠️ Could not find release for tag $TAG"
+              echo "✅ Release verified: ID $RELEASE_ID"
             fi
           fi
         env:
