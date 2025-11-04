@@ -190,6 +190,26 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
 
+      - name: Normalize tag format
+        id: normalize_tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            # Remove double dots (v.1.0.1 -> v1.0.1) and ensure proper semver format
+            NORMALIZED_TAG=$(echo "$TAG" | sed 's/v\./v/g')
+            if [ "$TAG" != "$NORMALIZED_TAG" ]; then
+              echo "⚠️  Warning: Tag format '$TAG' is not valid semver. Normalizing to '$NORMALIZED_TAG'"
+              # Delete the invalid tag and create a normalized one locally
+              git tag -d "$TAG" 2>/dev/null || true
+              git tag "$NORMALIZED_TAG" "$GITHUB_SHA"
+              echo "normalized_tag=$NORMALIZED_TAG" >> $GITHUB_OUTPUT
+            else
+              echo "normalized_tag=$TAG" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "normalized_tag=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
