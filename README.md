@@ -1,4 +1,4 @@
-# Conform - Declarative Configuration & Validation for Go
+# Conform
 
 <div align="center">
 
@@ -8,9 +8,14 @@
 ![CI/CD](https://img.shields.io/github/actions/workflow/status/alicanli1995/conform/test.yml?style=for-the-badge&label=CI/CD)
 [![Go Reference](https://img.shields.io/badge/go-reference-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://pkg.go.dev/github.com/alicanli1995/conform)
 
-**The Pydantic for Go** - Type-safe configuration loading, validation, and management in one elegant package.
+### The Pydantic for Go
+
+**Type-safe configuration loading, validation, and management in one elegant package.**
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Examples](#-examples)
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/alicanli1995/conform)](https://goreportcard.com/report/github.com/alicanli1995/conform)
+[![GoDoc](https://img.shields.io/badge/godoc-reference-blue.svg)](https://pkg.go.dev/github.com/alicanli1995/conform)
 
 </div>
 
@@ -19,6 +24,15 @@
 ## 🎯 Why Conform?
 
 **Stop juggling multiple libraries.** Conform unifies configuration loading, type conversion, and validation into a single, declarative interface.
+
+### Key Benefits
+
+- ⚡ **Zero Boilerplate** - Declare everything in struct tags, no manual parsing or validation code
+- 🔒 **Type Safety** - Full generics support ensures compile-time type checking
+- 🚀 **Production Ready** - Built-in support for environment-specific configs, hot reload, and variable substitution
+- 💡 **Developer Experience** - Beautiful, actionable error messages that tell you exactly what's wrong
+- 🎨 **Flexible** - Support for multiple sources, custom validators, and converters
+- 📦 **Lightweight** - Minimal dependencies, fast performance
 
 ### Before Conform ❌
 
@@ -57,22 +71,36 @@ cfg, err := conform.LoadGeneric[Config](conform.FromEnv())
 
 **One struct tag. One function call. Zero boilerplate.**
 
+### Perfect For
+
+- 🏢 **Microservices** - Type-safe configuration across services
+- 🚀 **Cloud-Native Apps** - Environment-specific configs for Kubernetes, Docker
+- 🔧 **CLI Tools** - Easy configuration management
+- 📊 **APIs & Web Services** - Fast, validated config loading
+- 🧪 **Testing** - Mock-friendly configuration loading
+
 ---
 
 ## ✨ Features
 
 ### 🎯 Core Features
 
-- **🏷️ Declarative Configuration** - Everything in struct tags, zero boilerplate
-- **🚀 Type-Safe Generics** - Full type safety with Go 1.21+ generics
-- **🔄 Multi-Source Support** - Environment variables, files (YAML/JSON/TOML), custom sources
-- **✅ Built-in Validation** - 20+ validators out of the box (email, URL, IP, numeric ranges, regex, etc.)
-- **🔧 Smart Type Coercion** - Automatic conversion for `bool`, `time.Duration`, `[]int`, `time.Time`, `map[string]int`
-- **📦 Nested Structs** - Full support with automatic prefix handling
-- **🔥 Hot Reload** - Watch for changes and reload automatically
-- **💬 Beautiful Errors** - Detailed error messages with field paths, suggestions, and locations
-- **🌍 Environment-Specific** - Load different configs for dev/staging/prod
-- **🔐 Variable Substitution** - `${VAR_NAME:-default}` syntax in config values and file paths
+<div align="center">
+
+| Feature | Description |
+|---------|-------------|
+| 🏷️ **Declarative Configuration** | Everything in struct tags, zero boilerplate |
+| 🚀 **Type-Safe Generics** | Full type safety with Go 1.21+ generics |
+| 🔄 **Multi-Source Support** | Environment variables, files (YAML/JSON/TOML), custom sources |
+| ✅ **Built-in Validation** | 20+ validators out of the box |
+| 🔧 **Smart Type Coercion** | Automatic conversion for complex types |
+| 📦 **Nested Structs** | Full support with automatic prefix handling |
+| 🔥 **Hot Reload** | Watch for changes and reload automatically |
+| 💬 **Beautiful Errors** | Detailed error messages with suggestions |
+| 🌍 **Environment-Specific** | Load different configs for dev/staging/prod |
+| 🔐 **Variable Substitution** | `${VAR_NAME:-default}` syntax support |
+
+</div>
 
 ### 🎨 What Makes Conform Different?
 
@@ -96,15 +124,30 @@ cfg, err := conform.LoadGeneric[Config](conform.FromEnv())
 
 ## 📦 Installation
 
+### Go Module
+
 ```bash
 go get github.com/alicanli1995/conform
 ```
+
+### Import
+
+```go
+import "github.com/alicanli1995/conform"
+```
+
+### Requirements
+
+- Go 1.21 or higher
+- No external dependencies required (except for file format support: YAML, TOML)
 
 ---
 
 ## 🚀 Quick Start
 
 ### Basic Example
+
+Define your configuration struct with `conform` tags:
 
 ```go
 package main
@@ -133,6 +176,23 @@ func main() {
     
     fmt.Printf("Server: %s:%d\n", cfg.Host, cfg.Port)
 }
+```
+
+**That's it!** Your configuration is loaded, validated, and ready to use. 🎉
+
+### What Just Happened?
+
+1. ✅ **Loaded** from environment variables
+2. ✅ **Converted** types automatically (`string` → `int`)
+3. ✅ **Validated** against rules (`gte:1024`, `hostname`, `url`)
+4. ✅ **Applied** defaults where needed
+5. ✅ **Returned** type-safe config struct
+
+### Try It Yourself
+
+```bash
+# Run the example
+cd examples/basic && go run main.go
 ```
 
 ---
@@ -401,71 +461,6 @@ cfg, _ := conform.LoadGeneric[Config](conform.FromFile("config.json"))
 
 ---
 
-## 🔧 Advanced Usage
-
-### Multiple File Sources
-
-```go
-cfg, err := conform.LoadGeneric[Config](
-    conform.FromFile("config.yaml"),
-    conform.FromFile("secrets.yaml"),
-    conform.FromEnv(),
-)
-```
-
-### Custom Sources
-
-```go
-type CustomSource struct{}
-
-func (c *CustomSource) Get(key string) (string, bool) {
-    // Your implementation
-    return value, found
-}
-
-cfg, err := conform.LoadGeneric[Config](
-    conform.WithSource(&CustomSource{}),
-)
-```
-
-### Slices and Arrays
-
-```go
-type Config struct {
-    Hosts []string `conform:"env=HOSTS,separator=|"`
-    Ports []int    `conform:"env=PORTS,separator=,"`
-}
-
-// HOSTS=host1|host2|host3
-// PORTS=8080,8081,8082
-```
-
-### Maps
-
-```go
-type Config struct {
-    // String "key1=value1,key2=value2" → map[string]string
-    StringMap map[string]string `conform:"env=STRING_MAP"`
-    
-    // String "1=one,2=two" → map[int]string
-    IntMap map[int]string `conform:"env=INT_MAP"`
-}
-```
-
-### Time Parsing
-
-```go
-type Config struct {
-    StartTime time.Time `conform:"env=START_TIME,format=2006-01-02T15:04:05Z"`
-    BirthDate time.Time `conform:"env=BIRTH_DATE,format=2006-01-02"`
-}
-
-// START_TIME=2024-01-01T00:00:00Z
-// BIRTH_DATE=1990-05-15
-```
-
----
-
 ## 🔧 CLI Tool
 
 > **Note:** CLI tool is currently in development. For now, use the programmatic API for validation.
@@ -488,21 +483,29 @@ if err != nil {
 
 Comprehensive examples available in the [`examples`](./examples) directory:
 
-- **[Basic Usage](./examples/basic/main.go)** - Getting started
-- **[Generic API](./examples/generic/main.go)** - Type-safe loading
-- **[File Configuration](./examples/fileconfig/main.go)** - YAML, JSON, TOML examples
-- **[Environment-Specific](./examples/environment/main.go)** - Dev/staging/prod configs
-- **[Advanced Features](./examples/advanced/main.go)** - Complex scenarios
-- **[Custom Converters & Validators](./examples/custom/main.go)** - Extending Conform
-- **[Hot Reload](./examples/hotreload/main.go)** - Dynamic configuration
-- **[Beautiful Errors](./examples/errors/main.go)** - Error handling
-- **[Real-World Config](./examples/realworld/main.go)** - Production-ready example
+| Example | Description | Link |
+|---------|-------------|------|
+| 🚀 **Basic Usage** | Getting started with Conform | [View](./examples/basic/main.go) |
+| 🎯 **Generic API** | Type-safe loading with generics | [View](./examples/generic/main.go) |
+| 📄 **File Configuration** | YAML, JSON, TOML examples | [View](./examples/fileconfig/main.go) |
+| 🌍 **Environment-Specific** | Dev/staging/prod configs | [View](./examples/environment/main.go) |
+| ⚡ **Advanced Features** | Complex scenarios | [View](./examples/advanced/main.go) |
+| 🔧 **Custom Extensions** | Custom converters & validators | [View](./examples/custom/main.go) |
+| 🔥 **Hot Reload** | Dynamic configuration | [View](./examples/hotreload/main.go) |
+| 💬 **Error Handling** | Beautiful error messages | [View](./examples/errors/main.go) |
+| 🏢 **Real-World** | Production-ready example | [View](./examples/realworld/main.go) |
+
+### Run All Examples
+
+```bash
+make run-examples
+```
 
 ---
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
@@ -510,6 +513,6 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 **Made with ❤️ for the Go community**
 
-[⭐ Star us on GitHub](https://github.com/alicanli1995/conform) • [📦 pkg.go.dev](https://pkg.go.dev/github.com/alicanli1995/conform) • [📖 Documentation](#-documentation) • [💬 Issues](https://github.com/alicanli1995/conform/issues)
+[⭐ Star us on GitHub](https://github.com/alicanli1995/conform) • [📦 pkg.go.dev](https://pkg.go.dev/github.com/alicanli1995/conform) • [📖 Documentation](#-documentation) • [💬 Issues](https://github.com/alicanli1995/conform/issues) • [🐛 Report Bug](https://github.com/alicanli1995/conform/issues/new)
 
 </div>

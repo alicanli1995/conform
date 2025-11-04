@@ -28,14 +28,11 @@ func (c *Converter) RegisterConverter(t reflect.Type, fn ConvertFunc) {
 	c.customConverters[t] = fn
 }
 
-// Convert converts a string value to the target type
 func (c *Converter) Convert(value string, targetType reflect.Type, format string) (interface{}, error) {
-	// Check for custom converter
 	if fn, ok := c.customConverters[targetType]; ok {
 		return fn(value)
 	}
 
-	// Handle pointer types
 	if targetType.Kind() == reflect.Ptr {
 		elemType := targetType.Elem()
 		converted, err := c.Convert(value, elemType, format)
@@ -43,13 +40,11 @@ func (c *Converter) Convert(value string, targetType reflect.Type, format string
 			return nil, err
 		}
 
-		// Create pointer
 		ptr := reflect.New(elemType)
 		ptr.Elem().Set(reflect.ValueOf(converted))
 		return ptr.Interface(), nil
 	}
 
-	// Built-in type conversions
 	switch targetType.Kind() {
 	case reflect.String:
 		return value, nil
@@ -58,7 +53,6 @@ func (c *Converter) Convert(value string, targetType reflect.Type, format string
 		return parseBool(value)
 
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		// Special case: time.Duration
 		if targetType == reflect.TypeOf(time.Duration(0)) {
 			return time.ParseDuration(value)
 		}
@@ -159,11 +153,9 @@ func parseFloat(value string, targetType reflect.Type) (interface{}, error) {
 
 func (c *Converter) convertSlice(value string, targetType reflect.Type, separator string) (interface{}, error) {
 	if value == "" {
-		// Return empty slice
 		return reflect.MakeSlice(targetType, 0, 0).Interface(), nil
 	}
 
-	// Use separator from parameter or default to comma
 	if separator == "" {
 		separator = ","
 	}
@@ -176,7 +168,6 @@ func (c *Converter) convertSlice(value string, targetType reflect.Type, separato
 	for i, part := range parts {
 		part = strings.TrimSpace(part)
 
-		// Convert element
 		elem, err := c.Convert(part, elemType, "")
 		if err != nil {
 			return nil, fmt.Errorf("slice element %d: %w", i, err)
@@ -189,7 +180,6 @@ func (c *Converter) convertSlice(value string, targetType reflect.Type, separato
 }
 
 func (c *Converter) convertMap(value string, targetType reflect.Type) (interface{}, error) {
-	// Format: "key1=value1,key2=value2"
 	if value == "" {
 		return reflect.MakeMap(targetType).Interface(), nil
 	}
@@ -205,14 +195,12 @@ func (c *Converter) convertMap(value string, targetType reflect.Type) (interface
 			return nil, fmt.Errorf("invalid map pair: %s (expected format: key=value)", pair)
 		}
 
-		// Convert key - support custom key types
 		keyStr := strings.TrimSpace(parts[0])
 		key, err := c.Convert(keyStr, keyType, "")
 		if err != nil {
 			return nil, fmt.Errorf("map key conversion failed for %q: %w", keyStr, err)
 		}
 
-		// Convert value
 		valStr := strings.TrimSpace(parts[1])
 		val, err := c.Convert(valStr, valueType, "")
 		if err != nil {
@@ -226,7 +214,6 @@ func (c *Converter) convertMap(value string, targetType reflect.Type) (interface
 }
 
 func (c *Converter) convertStruct(value string, targetType reflect.Type, format string) (interface{}, error) {
-	// Special case: time.Time - check by package path and name
 	if targetType.PkgPath() == "time" && targetType.Name() == "Time" {
 		layout := time.RFC3339
 		if format != "" {

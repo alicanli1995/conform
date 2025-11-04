@@ -19,8 +19,8 @@ type FieldError struct {
 	FieldPath  string
 	Value      interface{}
 	Message    string
-	Key        string // env var or file key
-	Location   string // where the error occurred
+	Key        string
+	Location   string
 	Suggestion string
 }
 
@@ -72,8 +72,8 @@ type Config struct {
 	Validator   *validate.Validator
 	FileSources []source.Source
 	Sources     []source.Source
-	Environment string            // Environment name (dev, staging, production, etc.)
-	Variables   map[string]string // Custom variables for substitution
+	Environment string
+	Variables   map[string]string
 }
 
 // Option is a configuration option
@@ -87,17 +87,14 @@ func FromEnv() Option {
 }
 
 // FromFile creates an option that loads from a file
-// Supports environment-specific files: config.${ENV}.yaml
 func FromFile(filePath string) Option {
 	return func(c *Config) {
 		if filePath != "" {
-			// Substitute environment variables in file path
 			resolvedPath := substituteVariables(filePath, c.Environment, c.Variables)
 
 			fileLoader := loader.NewFileLoader(resolvedPath)
 			c.FileLoader = fileLoader
 			if err := fileLoader.Load(); err != nil {
-				// Log error but don't fail
 				_ = err
 			}
 			fileSource := &fileSource{loader: fileLoader, path: resolvedPath}
@@ -106,11 +103,9 @@ func FromFile(filePath string) Option {
 	}
 }
 
-// FromConsul creates an option that loads from Consul (placeholder - would need consul client)
+// FromConsul creates an option that loads from Consul
 func FromConsul(path string) Option {
 	return func(c *Config) {
-		// Placeholder - would integrate with Consul client
-		// For now, we'll create a mock source
 		consulSource := &consulSource{path: path}
 		c.Sources = append(c.Sources, consulSource)
 	}
@@ -150,11 +145,9 @@ func WithValidator(v *validate.Validator) Option {
 }
 
 // WithEnvironment sets the environment name for environment-specific configs
-// Example: WithEnvironment("production") will load config.production.yaml
 func WithEnvironment(env string) Option {
 	return func(c *Config) {
 		c.Environment = env
-		// Also set ENV variable for substitution
 		if c.Variables == nil {
 			c.Variables = make(map[string]string)
 		}
@@ -163,7 +156,6 @@ func WithEnvironment(env string) Option {
 }
 
 // WithVariables sets custom variables for substitution in config values
-// Example: WithVariables(map[string]string{"APP_NAME": "MyApp"})
 func WithVariables(vars map[string]string) Option {
 	return func(c *Config) {
 		if c.Variables == nil {
@@ -175,7 +167,7 @@ func WithVariables(vars map[string]string) Option {
 	}
 }
 
-// Load loads configuration into the target struct (non-generic version for backward compatibility)
+// Load loads configuration into the target struct
 func Load(target interface{}, opts ...Option) error {
 	targetType := reflect.TypeOf(target)
 	if targetType.Kind() != reflect.Ptr {
@@ -187,31 +179,25 @@ func Load(target interface{}, opts ...Option) error {
 		return fmt.Errorf("target must be a pointer to struct")
 	}
 
-	// Create new instance
 	newValue := reflect.New(elemType)
-
-	// Load into new instance
 	err := loadInto(newValue.Interface(), opts...)
 	if err != nil {
 		return err
 	}
 
-	// Copy to target
 	reflect.ValueOf(target).Elem().Set(newValue.Elem())
 	return nil
 }
 
-// LoadGeneric loads configuration using generics - returns the config struct directly
+// LoadGeneric loads configuration using generics
 func LoadGeneric[T any](opts ...Option) (*T, error) {
 	var zero T
 	targetType := reflect.TypeOf(zero)
 	if targetType.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("T must be a struct type")
+		return nil, fmt.Errorf("t must be a struct type")
 	}
 
-	// Create new instance
 	result := new(T)
-
 	err := loadInto(result, opts...)
 	if err != nil {
 		return nil, err
@@ -222,7 +208,6 @@ func LoadGeneric[T any](opts ...Option) (*T, error) {
 
 // loadInto is the internal implementation
 func loadInto(target interface{}, opts ...Option) error {
-	// Default configuration
 	cfg := &Config{
 		Converter: defaultConverter,
 		Validator: defaultValidator,
@@ -230,15 +215,12 @@ func loadInto(target interface{}, opts ...Option) error {
 		Variables: make(map[string]string),
 	}
 
-	// Apply options
 	for _, opt := range opts {
 		opt(cfg)
 	}
 
-	// Build multi-source (priority: first source wins)
 	multiSource := source.NewMultiSource(cfg.Sources...)
 
-	// Parse struct
 	targetType := reflect.TypeOf(target)
 	if targetType.Kind() == reflect.Ptr {
 		targetType = targetType.Elem()
@@ -249,7 +231,6 @@ func loadInto(target interface{}, opts ...Option) error {
 		return fmt.Errorf("failed to parse struct: %w", err)
 	}
 
-	// Get target value
 	targetValue := reflect.ValueOf(target)
 	if targetValue.Kind() == reflect.Ptr {
 		targetValue = targetValue.Elem()
@@ -257,17 +238,14 @@ func loadInto(target interface{}, opts ...Option) error {
 
 	var errorList ErrorList
 
-	// Process each field
 	for _, fieldInfo := range info.Fields {
 		fieldValue := targetValue.FieldByIndex(fieldInfo.Index)
 		fieldPath := buildFieldPath(fieldInfo, info, targetType)
 
-		// Get value from source
 		var value string
 		var found bool
 		var sourceName string
 
-		// Try env var first
 		if fieldInfo.Tag.EnvVar != "" {
 			value, found = multiSource.Get(fieldInfo.Tag.EnvVar)
 			if found {
@@ -275,9 +253,7 @@ func loadInto(target interface{}, opts ...Option) error {
 			}
 		}
 
-		// Try file key if not found
 		if !found && fieldInfo.Tag.FileKey != "" && cfg.FileLoader != nil {
-			// Substitute variables in file key (e.g., database.${ENV}.host -> database.production.host)
 			resolvedFileKey := substituteVariables(fieldInfo.Tag.FileKey, cfg.Environment, cfg.Variables)
 			value, found = cfg.FileLoader.Get(resolvedFileKey)
 			if found {
@@ -285,19 +261,16 @@ func loadInto(target interface{}, opts ...Option) error {
 			}
 		}
 
-		// Use default if not found
 		if !found && fieldInfo.Tag.Default != "" {
 			value = fieldInfo.Tag.Default
 			found = true
 			sourceName = "default value"
 		}
 
-		// Substitute variables in value (${VAR_NAME:-default})
 		if found {
 			value = substituteVariables(value, cfg.Environment, cfg.Variables)
 		}
 
-		// Check required
 		if fieldInfo.Tag.Required && !found {
 			var keyName string
 			if fieldInfo.Tag.EnvVar != "" {
@@ -323,14 +296,11 @@ func loadInto(target interface{}, opts ...Option) error {
 			continue
 		}
 
-		// Convert value
 		if found {
-			// Use separator from tag for slices, format for time and other structs
 			var formatOrSeparator string
 			if fieldInfo.Type.Kind() == reflect.Slice {
 				formatOrSeparator = fieldInfo.Tag.Separator
 			} else if fieldInfo.Type.Kind() == reflect.Struct {
-				// Check if it's time.Time by comparing package path and name
 				if fieldInfo.Type.PkgPath() == "time" && fieldInfo.Type.Name() == "Time" {
 					formatOrSeparator = fieldInfo.Tag.Format
 				} else {
@@ -357,7 +327,6 @@ func loadInto(target interface{}, opts ...Option) error {
 			fieldValue.Set(reflect.ValueOf(converted))
 		}
 
-		// Validate
 		if len(fieldInfo.Tag.Validators) > 0 {
 			fieldVal := fieldValue.Interface()
 			err := cfg.Validator.Validate(fieldVal, fieldInfo.Tag.Validators)
@@ -383,14 +352,11 @@ func loadInto(target interface{}, opts ...Option) error {
 	return nil
 }
 
-// buildFieldPath builds the full path to a field (e.g., "Database.URL")
 func buildFieldPath(fieldInfo parser.FieldInfo, structInfo *parser.StructInfo, targetType reflect.Type) string {
 	if len(fieldInfo.Index) == 1 {
-		// Top-level field
 		return fieldInfo.Name
 	}
 
-	// Build path from field index
 	var path []string
 	currentType := targetType
 
@@ -400,7 +366,6 @@ func buildFieldPath(fieldInfo parser.FieldInfo, structInfo *parser.StructInfo, t
 			field := currentType.Field(idx)
 			path = append(path, field.Name)
 
-			// Navigate to nested struct
 			if field.Type.Kind() == reflect.Ptr {
 				currentType = field.Type.Elem()
 			} else {
@@ -413,7 +378,6 @@ func buildFieldPath(fieldInfo parser.FieldInfo, structInfo *parser.StructInfo, t
 		}
 	}
 
-	// Add the final field name
 	path = append(path, fieldInfo.Name)
 
 	return strings.Join(path, ".")
@@ -473,20 +437,13 @@ func getValidationSuggestion(validators []parser.Validator, fieldType reflect.Ty
 	return ""
 }
 
-// substituteVariables substitutes variables in a string
-// Supports:
-//   - ${VAR_NAME} - simple substitution
-//   - ${VAR_NAME:-default} - substitution with default value
-//   - ${ENV} - environment variable substitution
 func substituteVariables(s string, env string, vars map[string]string) string {
 	if s == "" {
 		return s
 	}
 
-	// Build variable map from environment variables and custom variables
 	allVars := make(map[string]string)
 
-	// Add environment variables
 	for _, envVar := range os.Environ() {
 		parts := strings.SplitN(envVar, "=", 2)
 		if len(parts) == 2 {
@@ -494,24 +451,18 @@ func substituteVariables(s string, env string, vars map[string]string) string {
 		}
 	}
 
-	// Add custom variables (override env vars)
-	if vars != nil {
-		for k, v := range vars {
-			allVars[k] = v
-		}
+	for k, v := range vars {
+		allVars[k] = v
 	}
 
-	// Add ENV variable if set
 	if env != "" {
 		allVars["ENV"] = env
 	}
 
-	// Replace ${VAR_NAME} and ${VAR_NAME:-default}
 	var result strings.Builder
 	i := 0
 	for i < len(s) {
 		if s[i] == '$' && i+1 < len(s) && s[i+1] == '{' {
-			// Found ${ - find closing }
 			start := i + 2
 			end := start
 			for end < len(s) && s[end] != '}' {
@@ -521,7 +472,6 @@ func substituteVariables(s string, env string, vars map[string]string) string {
 			if end < len(s) {
 				varExpr := s[start:end]
 
-				// Check for default value syntax: VAR_NAME:-default
 				if idx := strings.Index(varExpr, ":-"); idx != -1 {
 					varName := strings.TrimSpace(varExpr[:idx])
 					defaultVal := strings.TrimSpace(varExpr[idx+2:])
@@ -532,19 +482,16 @@ func substituteVariables(s string, env string, vars map[string]string) string {
 						result.WriteString(defaultVal)
 					}
 				} else {
-					// Simple substitution
 					varName := strings.TrimSpace(varExpr)
 					if val, ok := allVars[varName]; ok {
 						result.WriteString(val)
 					} else {
-						// Variable not found, keep original
 						result.WriteString("${" + varExpr + "}")
 					}
 				}
 
 				i = end + 1
 			} else {
-				// No closing brace, keep as is
 				result.WriteByte(s[i])
 				i++
 			}
@@ -567,17 +514,14 @@ func (f *fileSource) Get(key string) (string, bool) {
 	return f.loader.Get(key)
 }
 
-// consulSource is a placeholder for Consul integration
 type consulSource struct {
 	path string
 }
 
 func (c *consulSource) Get(key string) (string, bool) {
-	// Placeholder - would integrate with Consul client
 	return "", false
 }
 
-// Default converter and validator instances
 var (
 	defaultConverter = convert.New()
 	defaultValidator = validate.New()
@@ -593,7 +537,6 @@ func RegisterConverter(t reflect.Type, fn convert.ConvertFunc) {
 	defaultConverter.RegisterConverter(t, fn)
 }
 
-// WithFile sets a config file path (backward compatibility alias for FromFile)
 func WithFile(filePath string) Option {
 	return FromFile(filePath)
 }

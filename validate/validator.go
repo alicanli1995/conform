@@ -13,32 +13,26 @@ import (
 	"github.com/alicanli1995/conform/parser"
 )
 
-// Validator handles validation of values
 type Validator struct {
 	customValidators map[string]ValidateFunc
 }
 
-// ValidateFunc is a function that validates a value
 type ValidateFunc func(value interface{}, params []string) error
 
-// New creates a new Validator instance
 func New() *Validator {
 	v := &Validator{
 		customValidators: make(map[string]ValidateFunc),
 	}
 
-	// Register built-in validators
 	v.registerBuiltins()
 
 	return v
 }
 
-// RegisterValidator registers a custom validator
 func (v *Validator) RegisterValidator(name string, fn ValidateFunc) {
 	v.customValidators[name] = fn
 }
 
-// Validate runs validation rules on a value
 func (v *Validator) Validate(value interface{}, rules []parser.Validator) error {
 	for _, rule := range rules {
 		if err := v.validateRule(value, rule); err != nil {
@@ -49,12 +43,9 @@ func (v *Validator) Validate(value interface{}, rules []parser.Validator) error 
 }
 
 func (v *Validator) validateRule(value interface{}, rule parser.Validator) error {
-	// Check custom validators first
 	if fn, ok := v.customValidators[rule.Name]; ok {
 		return fn(value, rule.Params)
 	}
-
-	// Built-in validators
 	switch rule.Name {
 	case "required":
 		return v.validateRequired(value)

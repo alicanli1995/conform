@@ -25,16 +25,15 @@ func NewFileLoader(filePath string) *FileLoader {
 	}
 }
 
-// Load loads the configuration file
 func (f *FileLoader) Load() error {
 	if f.filePath == "" {
-		return nil // No file specified
+		return nil
 	}
 
 	data, err := os.ReadFile(f.filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil // File doesn't exist, return empty map
+			return nil
 		}
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
@@ -62,7 +61,6 @@ func (f *FileLoader) Load() error {
 	return nil
 }
 
-// convertToMap converts TOML data to map[string]interface{}
 func convertToMap(data interface{}) map[string]interface{} {
 	if data == nil {
 		return make(map[string]interface{})
@@ -72,7 +70,6 @@ func convertToMap(data interface{}) map[string]interface{} {
 		return m
 	}
 
-	// If it's a map with interface{} keys, convert it
 	if m, ok := data.(map[interface{}]interface{}); ok {
 		result := make(map[string]interface{})
 		for k, v := range m {
@@ -106,8 +103,6 @@ func convertValue(v interface{}) interface{} {
 	}
 }
 
-// Get retrieves a value from the loaded configuration using dot notation
-// Example: "database.host" -> data["database"]["host"]
 func (f *FileLoader) Get(key string) (string, bool) {
 	if f.data == nil {
 		return "", false
@@ -122,12 +117,10 @@ func (f *FileLoader) Get(key string) (string, bool) {
 			return "", false
 		}
 
-		// If this is the last part, convert to string
 		if i == len(parts)-1 {
 			return fmt.Sprintf("%v", value), true
 		}
 
-		// Otherwise, continue traversing
 		nested, ok := value.(map[string]interface{})
 		if !ok {
 			return "", false
