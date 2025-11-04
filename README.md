@@ -503,6 +503,18 @@ make run-examples
 
 ---
 
+## 🗺️ Roadmap
+
+### Upcoming Features
+
+- 🔐 **Secret Management** - HashiCorp Vault, AWS Secrets Manager, Azure Key Vault integration
+- 🔄 **Remote Configuration** - etcd integration for distributed config management
+- 📊 **JSON Schema Validation** - External schema validation support
+- 📝 **Config Documentation** - Auto-generate config docs from struct definitions
+- 🔍 **Config Diff/Compare** - Track and compare configuration changes
+- 📈 **Metrics & Observability** - Prometheus metrics for config usage monitoring
+---
+
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
