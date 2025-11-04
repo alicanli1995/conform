@@ -10,6 +10,9 @@ on:
       - master
       - main
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -73,4 +76,62 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
         run: |
           go build -v -o bin/conform-validate-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.goos == 'windows' && '.exe' || '' }} ./cmd/conform-validate
+
+  create-tag:
+    runs-on: ubuntu-latest
+    needs: [test, build]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract tag from commit message
+        id: extract_tag
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Commit message: $COMMIT_MSG"
+          
+          # Extract version tag from commit message (supports: v1.0.0, Release v1.0.0, version 1.0.0, etc.)
+          TAG=$(echo "$COMMIT_MSG" | grep -oE 'v?[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          
+          if [[ -z "$TAG" ]]; then
+            echo "No version tag found in commit message"
+            echo "tag_exists=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Ensure tag starts with 'v'
+          if [[ ! "$TAG" =~ ^v ]]; then
+            TAG="v$TAG"
+          fi
+          
+          echo "Found tag: $TAG"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "tag_exists=true" >> $GITHUB_OUTPUT
+
+      - name: Check if tag already exists
+        id: check_tag
+        if: steps.extract_tag.outputs.tag_exists == 'true'
+        run: |
+          TAG="${{ steps.extract_tag.outputs.tag }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists"
+            echo "tag_exists_remote=true" >> $GITHUB_OUTPUT
+          else
+            echo "Tag $TAG does not exist, will create"
+            echo "tag_exists_remote=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create and push tag
+        if: steps.extract_tag.outputs.tag_exists == 'true' && steps.check_tag.outputs.tag_exists_remote == 'false'
+        run: |
+          TAG="${{ steps.extract_tag.outputs.tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "✅ Successfully created and pushed tag: $TAG"
 
