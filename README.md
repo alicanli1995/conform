@@ -5,8 +5,8 @@
 ![Go Version](https://img.shields.io/badge/go-1.21+-00ADD8?style=for-the-badge&logo=go)
 ![License](https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge)
 ![GitHub](https://img.shields.io/github/stars/alicanli1995/conform?style=for-the-badge)
-![CI/CD](https://github.com/alicanli1995/conform/actions/workflows/test.yml/badge.svg)
-[![Go Reference](https://pkg.go.dev/badge/github.com/alicanli1995/conform.svg)](https://pkg.go.dev/github.com/alicanli1995/conform)
+![CI/CD](https://img.shields.io/github/actions/workflow/status/alicanli1995/conform/test.yml?style=for-the-badge&label=CI/CD)
+[![Go Reference](https://img.shields.io/badge/go-reference-00ADD8?style=for-the-badge&logo=go&logoColor=white)](https://pkg.go.dev/github.com/alicanli1995/conform)
 
 **The Pydantic for Go** - Type-safe configuration loading, validation, and management in one elegant package.
 
@@ -65,8 +65,8 @@ cfg, err := conform.LoadGeneric[Config](conform.FromEnv())
 
 - **🏷️ Declarative Configuration** - Everything in struct tags, zero boilerplate
 - **🚀 Type-Safe Generics** - Full type safety with Go 1.21+ generics
-- **🔄 Multi-Source Support** - Environment variables, files (YAML/JSON/TOML), Consul, custom sources
-- **✅ Built-in Validation** - 25+ validators out of the box (email, URL, IP, numeric ranges, regex, etc.)
+- **🔄 Multi-Source Support** - Environment variables, files (YAML/JSON/TOML), custom sources
+- **✅ Built-in Validation** - 20+ validators out of the box (email, URL, IP, numeric ranges, regex, etc.)
 - **🔧 Smart Type Coercion** - Automatic conversion for `bool`, `time.Duration`, `[]int`, `time.Time`, `map[string]int`
 - **📦 Nested Structs** - Full support with automatic prefix handling
 - **🔥 Hot Reload** - Watch for changes and reload automatically
@@ -76,16 +76,21 @@ cfg, err := conform.LoadGeneric[Config](conform.FromEnv())
 
 ### 🎨 What Makes Conform Different?
 
-| Feature | Conform | Viper | envconfig | go-config |
-|---------|---------|-------|-----------|-----------|
+| Feature | Conform | Viper | envconfig | koanf |
+|---------|---------|-------|-----------|-------|
 | **Type Safety** | ✅ Generics | ❌ | ❌ | ❌ |
-| **Validation** | ✅ Built-in | ❌ | ❌ | ⚠️ Limited |
+| **Validation** | ✅ Built-in | ❌ Requires validator | ❌ | ⚠️ Basic |
 | **Error Messages** | ✅ Beautiful | ❌ | ❌ | ⚠️ Basic |
-| **Hot Reload** | ✅ Built-in | ✅ | ❌ | ❌ |
-| **Environment-Specific** | ✅ Built-in | ⚠️ Manual | ❌ | ❌ |
-| **Variable Substitution** | ✅ Built-in | ❌ | ❌ | ❌ |
-| **Declarative** | ✅ 100% | ⚠️ Partial | ✅ | ⚠️ Partial |
+| **Hot Reload** | ✅ Built-in | ✅ WatchConfig | ❌ | ✅ |
+| **Environment-Specific** | ✅ Built-in | ⚠️ Manual | ❌ | ✅ |
+| **Variable Substitution** | ✅ Built-in | ❌ | ❌ | ✅ |
+| **Declarative** | ✅ 100% | ⚠️ Partial | ✅ | ✅ |
 | **Zero Boilerplate** | ✅ | ❌ | ⚠️ | ⚠️ |
+
+**Note:** 
+- **Viper** requires separate validation library (e.g., `go-playground/validator`)
+- **envconfig** is minimal and focused only on environment variables
+- **koanf** is a modern alternative but lacks generics and built-in validation
 
 ---
 
@@ -143,9 +148,9 @@ cfg, err := conform.LoadGeneric[Config](
     conform.FromEnv(),                    // Highest priority
     conform.FromFile("secrets.json"),     // Second priority
     conform.FromFile("config.yaml"),      // Third priority
-    conform.FromConsul("service/config"), // Fourth priority
+    conform.WithSource(&CustomSource{}),  // Custom source
 )
-// Priority: env > consul > json > yaml > defaults
+// Priority: env > custom sources > file sources > defaults
 ```
 
 ### Environment-Specific Configuration
@@ -375,6 +380,7 @@ cfg, _ := conform.LoadGeneric[Config](conform.FromFile("config.json"))
 - `url` - Valid URL (use `url:https` for HTTPS only)
 - `ip` - Valid IP address (IPv4 or IPv6)
 - `hostname` - Valid hostname
+- `port` - Valid port number (1-65535)
 - `alphanum` - Only letters and digits
 - `alpha` - Only letters
 - `numeric` - Only digits
@@ -462,14 +468,18 @@ type Config struct {
 
 ## 🔧 CLI Tool
 
-Validate configuration files without running your application:
+> **Note:** CLI tool is currently in development. For now, use the programmatic API for validation.
 
-```bash
-# Install
-go install github.com/alicanli1995/conform/cmd/conform-validate@latest
+Validate configuration files programmatically:
 
-# Validate a config file
-conform-validate -config=config.yaml -struct=config.go -struct-name=Config
+```go
+cfg, err := conform.LoadGeneric[Config](
+    conform.FromFile("config.yaml"),
+    conform.FromEnv(),
+)
+if err != nil {
+    fmt.Println(err) // Beautiful error messages
+}
 ```
 
 ---
