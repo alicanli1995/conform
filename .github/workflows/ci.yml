@@ -199,11 +199,23 @@ jobs:
             NORMALIZED_TAG=$(echo "$TAG" | sed 's/v\./v/g')
             if [ "$TAG" != "$NORMALIZED_TAG" ]; then
               echo "⚠️  Warning: Tag format '$TAG' is not valid semver. Normalizing to '$NORMALIZED_TAG'"
-              # Delete the invalid tag and create a normalized one locally
-              git tag -d "$TAG" 2>/dev/null || true
-              git tag "$NORMALIZED_TAG" "$GITHUB_SHA"
+              # Fetch all tags to check if normalized tag already exists remotely
+              git fetch --tags --force 2>/dev/null || true
+              # Check if normalized tag exists locally or remotely
+              if git rev-parse "$NORMALIZED_TAG" >/dev/null 2>&1; then
+                echo "✅ Normalized tag '$NORMALIZED_TAG' already exists, using it"
+                # Delete the invalid tag locally if it exists
+                git tag -d "$TAG" 2>/dev/null || true
+              else
+                echo "📝 Creating normalized tag '$NORMALIZED_TAG'"
+                # Delete the invalid tag locally if it exists
+                git tag -d "$TAG" 2>/dev/null || true
+                # Create normalized tag locally
+                git tag "$NORMALIZED_TAG" "$GITHUB_SHA"
+              fi
               echo "normalized_tag=$NORMALIZED_TAG" >> $GITHUB_OUTPUT
             else
+              echo "✅ Tag '$TAG' is already in valid semver format"
               echo "normalized_tag=$TAG" >> $GITHUB_OUTPUT
             fi
           else
