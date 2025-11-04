@@ -500,17 +500,6 @@ Comprehensive examples available in the [`examples`](./examples) directory:
 
 ---
 
-## 🏗️ Architecture
-
-Conform consists of four main components:
-
-1. **Parser** - Parses struct tags and extracts configuration metadata
-2. **Converter** - Converts string values to typed Go values
-3. **Validator** - Validates values against declarative rules
-4. **Loader** - Orchestrates loading from multiple sources with priority
-
----
-
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
