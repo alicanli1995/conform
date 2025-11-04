@@ -8,6 +8,8 @@ release:
     owner: alicanli1995
     name: conform
   mode: replace
+  prerelease: auto
+  draft: false
   footer: |
     ## Installation
 

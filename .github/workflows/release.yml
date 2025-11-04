@@ -32,3 +32,54 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install GitHub CLI
+        if: success()
+        run: |
+          type -p curl >/dev/null || (apt update && apt install curl -y)
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+          && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+          && apt update \
+          && apt install gh -y
+
+      - name: Set latest release
+        if: success()
+        run: |
+          # Get the tag that was just pushed
+          TAG=$(git describe --tags --abbrev=0)
+          echo "🔖 Setting latest release to: $TAG"
+          
+          # Wait a bit for GitHub API to be ready
+          sleep 2
+          
+          # Get the release ID for this tag
+          RELEASE_ID=$(gh api repos/alicanli1995/conform/releases/tags/$TAG --jq '.id' 2>/dev/null || echo "")
+          
+          if [[ -n "$RELEASE_ID" && "$RELEASE_ID" != "null" ]]; then
+            echo "✅ Found release ID: $RELEASE_ID"
+            
+            # Set this release as the latest (by making it the most recent non-prerelease)
+            # First, ensure it's not a prerelease
+            gh api repos/alicanli1995/conform/releases/$RELEASE_ID \
+              -X PATCH \
+              -f prerelease=false \
+              -f draft=false
+            
+            echo "✅ Release $TAG set as latest (non-prerelease)"
+          else
+            echo "⚠️ Release not found for tag $TAG, waiting..."
+            sleep 5
+            # Try again
+            RELEASE_ID=$(gh api repos/alicanli1995/conform/releases/tags/$TAG --jq '.id' 2>/dev/null || echo "")
+            if [[ -n "$RELEASE_ID" && "$RELEASE_ID" != "null" ]]; then
+              gh api repos/alicanli1995/conform/releases/$RELEASE_ID \
+                -X PATCH \
+                -f prerelease=false \
+                -f draft=false
+              echo "✅ Release $TAG set as latest"
+            else
+              echo "⚠️ Could not find release for tag $TAG"
+            fi
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
